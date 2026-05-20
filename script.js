@@ -1,4 +1,5 @@
-const RSS_URL = "https://api.rss2json.com/v1/api.json?rss_url=https://www.yna.co.kr/rss/news.xml";
+let currentCategory = "news";
+const getRssUrl = (category) => `https://api.rss2json.com/v1/api.json?rss_url=https://www.yna.co.kr/rss/${category}.xml`;
 
 let newsData = [];
 let currentIndex = -1;
@@ -34,7 +35,7 @@ updateDateTime();
 // Fetch and Parse RSS
 async function loadNews() {
     try {
-        const response = await fetch(RSS_URL);
+        const response = await fetch(getRssUrl(currentCategory));
         if (!response.ok) throw new Error("Network response was not ok");
         const data = await response.json();
         
@@ -82,7 +83,7 @@ function renderNewsList() {
         itemEl.id = `news-item-${news.index}`;
         itemEl.innerHTML = `
             <span class="news-item-time">${news.pubDate}</span>
-            <div class="news-item-title">${news.title}</div>
+            <a href="${news.link}" target="_blank" class="news-item-title" style="text-decoration: none; color: inherit; display: block;" onclick="event.stopPropagation()">${news.title} <i class="fas fa-external-link-alt" style="font-size: 0.8em; margin-left: 5px; color: var(--text-secondary);"></i></a>
         `;
         itemEl.addEventListener("click", () => {
             selectNews(news.index);
@@ -312,7 +313,17 @@ function playAudio() {
     if (currentIndex === -1) return;
 
     const news = newsData[currentIndex];
-    const textToSpeak = `${news.title}. ... ${news.description}`;
+    
+    // Replace awkward symbols with spaces (or comma for ·) to prevent TTS from reading them.
+    // Keeping the replacement at exactly 1 character ensures the highlight mapping (charIndex) stays perfectly synced!
+    const textToSpeak = `${news.title}. ... ${news.description}`
+        .replace(/=/g, ' ')
+        .replace(/\[/g, ' ')
+        .replace(/\]/g, ' ')
+        .replace(/\(/g, ' ')
+        .replace(/\)/g, ' ')
+        .replace(/["']/g, ' ')
+        .replace(/·/g, ',');
     
     utterance = new SpeechSynthesisUtterance(textToSpeak);
     
@@ -420,6 +431,18 @@ btnReload.addEventListener("click", () => {
     stopReading();
     newsListEl.innerHTML = `<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> 뉴스를 불러오는 중...</div>`;
     loadNews();
+});
+
+// Category Event Listeners
+document.querySelectorAll('.category-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        currentCategory = e.target.getAttribute('data-category');
+        stopReading();
+        newsListEl.innerHTML = `<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> 뉴스를 불러오는 중...</div>`;
+        loadNews();
+    });
 });
 
 // Init

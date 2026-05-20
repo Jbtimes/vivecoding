@@ -156,6 +156,52 @@ h1 {
     box-shadow: 0 0 15px var(--accent-glow);
 }
 
+/* Category Navigation */
+.category-nav {
+    display: flex;
+    gap: 10px;
+    padding: 10px 20px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    overflow-x: auto;
+}
+
+.category-nav::-webkit-scrollbar {
+    height: 6px;
+}
+.category-nav::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+}
+
+.category-btn {
+    background: transparent;
+    color: var(--text-secondary);
+    border: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+}
+
+.category-btn:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.category-btn.active {
+    background: var(--accent-color);
+    color: white;
+    box-shadow: 0 0 10px var(--accent-glow);
+}
+
 /* Content Wrapper */
 .content-wrapper {
     display: flex;
