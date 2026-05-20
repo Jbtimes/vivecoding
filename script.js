@@ -1,5 +1,26 @@
+let currentProvider = "yonhap";
 let currentCategory = "news";
-const getRssUrl = (category) => `https://api.rss2json.com/v1/api.json?rss_url=https://www.yna.co.kr/rss/${category}.xml`;
+const getYonhapRssUrl = (category) => `https://api.rss2json.com/v1/api.json?rss_url=https://www.yna.co.kr/rss/${category}.xml`;
+
+const yonhapCategories = [
+    { id: "news", name: "전체" },
+    { id: "politics", name: "정치" },
+    { id: "economy", name: "경제" },
+    { id: "society", name: "사회" },
+    { id: "international", name: "국제" },
+    { id: "culture", name: "문화" },
+    { id: "it-science", name: "과학" }
+];
+
+const daumCategories = [
+    { id: "", name: "전체" },
+    { id: "politics", name: "정치" },
+    { id: "economic", name: "경제" },
+    { id: "society", name: "사회" },
+    { id: "foreign", name: "국제" },
+    { id: "culture", name: "문화" },
+    { id: "digital", name: "IT" }
+];
 
 let newsData = [];
 let currentIndex = -1;
@@ -32,10 +53,44 @@ function updateDateTime() {
 setInterval(updateDateTime, 1000);
 updateDateTime();
 
-// Fetch and Parse RSS
+function renderCategoryNav() {
+    const navEl = document.getElementById("category-nav");
+    const categories = currentProvider === "yonhap" ? yonhapCategories : daumCategories;
+    
+    navEl.innerHTML = "";
+    categories.forEach(cat => {
+        const btn = document.createElement("button");
+        btn.className = `category-btn ${cat.id === currentCategory ? 'active' : ''}`;
+        btn.setAttribute("data-category", cat.id);
+        btn.innerText = cat.name;
+        btn.addEventListener("click", (e) => {
+            document.querySelectorAll(".category-btn").forEach(b => b.classList.remove("active"));
+            e.target.classList.add("active");
+            currentCategory = cat.id;
+            stopReading();
+            newsListEl.innerHTML = `<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> 뉴스를 불러오는 중...</div>`;
+            loadNews();
+        });
+        navEl.appendChild(btn);
+    });
+}
+
+// Fetch and Parse News
 async function loadNews() {
     try {
-        const response = await fetch(getRssUrl(currentCategory));
+        if (currentProvider === "yonhap") {
+            await loadYonhapNews();
+        } else {
+            await loadDaumNews();
+        }
+    } catch (error) {
+        console.error("Error loading news:", error);
+        newsListEl.innerHTML = `<div class="loading-spinner"><i class="fas fa-exclamation-triangle"></i> 뉴스를 불러오는데 실패했습니다.</div>`;
+    }
+}
+
+async function loadYonhapNews() {
+    const response = await fetch(getYonhapRssUrl(currentCategory));
         if (!response.ok) throw new Error("Network response was not ok");
         const data = await response.json();
         
@@ -68,9 +123,63 @@ async function loadNews() {
         if (newsData.length > 0) {
             selectNews(0);
         }
-    } catch (error) {
-        console.error("Error loading news:", error);
-        newsListEl.innerHTML = `<div class="loading-spinner"><i class="fas fa-exclamation-triangle"></i> 뉴스를 불러오는데 실패했습니다.</div>`;
+}
+
+async function loadDaumNews() {
+    const baseUrl = "https://news.daum.net";
+    const targetUrl = currentCategory ? `${baseUrl}/${currentCategory}` : baseUrl;
+    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+    
+    const response = await fetch(proxyUrl);
+    if (!response.ok) throw new Error("Network response was not ok");
+    const data = await response.json();
+    
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(data.contents, "text/html");
+    
+    newsData = [];
+    
+    let articleEls = doc.querySelectorAll('.item_issue a.link_txt, .list_newsmajor a.link_txt, .list_newsissue a.link_txt, .list_todaysports a.link_txt, .list_news a.link_txt');
+    if (articleEls.length === 0) {
+        articleEls = doc.querySelectorAll('.tit_g a, .link_txt');
+    }
+    
+    const validEls = Array.from(articleEls).filter(el => {
+        const href = el.getAttribute('href');
+        return href && href.includes('/v/');
+    });
+    
+    const seenLinks = new Set();
+    let index = 0;
+    
+    validEls.forEach((el) => {
+        let link = el.getAttribute('href');
+        if (!link.startsWith('http')) {
+            link = link.startsWith('//') ? 'https:' + link : 'https://v.daum.net' + link;
+        }
+        
+        if (seenLinks.has(link) || index >= 20) return;
+        seenLinks.add(link);
+        
+        const title = el.innerText.trim() || "제목 없음";
+        
+        newsData.push({
+            index,
+            title,
+            originalDescription: "",
+            description: "",
+            link: link,
+            fullTextFetched: false,
+            pubDate: new Date().toLocaleString('ko-KR')
+        });
+        index++;
+    });
+
+    renderNewsList();
+    if (newsData.length > 0) {
+        selectNews(0);
+    } else {
+        throw new Error("No news items found on Daum");
     }
 }
 
@@ -103,8 +212,8 @@ async function fetchFullFirstSentence(news) {
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, "text/html");
         
-        // Find the article body. Yonhap news uses <article> or .story-news
-        const articleEls = doc.querySelectorAll('article p, .story-news p');
+        // Find the article body. Yonhap uses <article> or .story-news. Daum uses .article_view or section
+        const articleEls = doc.querySelectorAll('article p, .story-news p, .article_view p, section p');
         let fullText = "";
         for (let p of articleEls) {
             fullText += p.innerText + " ";
@@ -433,12 +542,16 @@ btnReload.addEventListener("click", () => {
     loadNews();
 });
 
-// Category Event Listeners
-document.querySelectorAll('.category-btn').forEach(btn => {
+// Provider Event Listeners
+document.querySelectorAll('.provider-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
-        document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.provider-btn').forEach(b => b.classList.remove('active'));
         e.target.classList.add('active');
-        currentCategory = e.target.getAttribute('data-category');
+        currentProvider = e.target.getAttribute('data-provider');
+        
+        currentCategory = currentProvider === "yonhap" ? "news" : "";
+        
+        renderCategoryNav();
         stopReading();
         newsListEl.innerHTML = `<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> 뉴스를 불러오는 중...</div>`;
         loadNews();
@@ -447,4 +560,5 @@ document.querySelectorAll('.category-btn').forEach(btn => {
 
 // Init
 window.addEventListener('beforeunload', () => synth.cancel());
+renderCategoryNav();
 loadNews();
