@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>연합뉴스 주요뉴스 오디오 리더기</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <div class="container">
+        <header class="app-header">
+            <div class="logo">
+                <i class="fas fa-newspaper"></i>
+                <h1>연합뉴스 <span class="accent">오디오 브리핑</span></h1>
+            </div>
+            <div class="header-right" style="display:flex; align-items:center; gap: 15px;">
+                <button id="btn-reload" class="reload-btn"><i class="fas fa-sync-alt"></i> 뉴스 불러오기</button>
+                <div class="datetime" id="datetime-display">로딩 중...</div>
+            </div>
+        </header>
+
+        <main class="content-wrapper">
+            <!-- Left Side: Controls & Playlist -->
+            <section class="playlist-section glass-panel">
+                <div class="controls-container">
+                    <button id="btn-prev" class="control-btn" title="이전 뉴스"><i class="fas fa-backward-step"></i></button>
+                    <button id="btn-play-pause" class="control-btn play-btn" title="재생/일시정지"><i class="fas fa-play"></i></button>
+                    <button id="btn-stop" class="control-btn" title="정지"><i class="fas fa-stop"></i></button>
+                    <button id="btn-next" class="control-btn" title="다음 뉴스"><i class="fas fa-forward-step"></i></button>
+                </div>
+                
+                <div class="status-bar">
+                    <span id="current-status">대기 중</span>
+                    <span id="progress-text">0 / 0</span>
+                </div>
+
+                <div class="settings">
+                    <label for="voice-select"><i class="fas fa-microphone"></i> 음성 선택</label>
+                    <select id="voice-select"></select>
+                </div>
+
+                <div class="news-list" id="news-list">
+                    <div class="loading-spinner">
+                        <i class="fas fa-spinner fa-spin"></i> 뉴스를 불러오는 중...
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Side: Now Playing / Teleprompter -->
+            <section class="reader-section glass-panel">
+                <div class="now-playing-header">
+                    <div class="live-badge"><i class="fas fa-circle"></i> NOW READING</div>
+                    <span id="publish-time" class="publish-time"></span>
+                </div>
+                
+                <div class="article-display" id="article-display">
+                    <h2 id="article-title" class="reading-title">뉴스를 선택하거나 재생을 눌러주세요.</h2>
+                    <div id="article-content" class="reading-content">
+                        <!-- 텍스트 하이라이트가 적용될 부분 -->
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
